@@ -1,0 +1,6 @@
+Tests: unittests
+Depends:
+ python3-all,
+ python3-installer,
+ python3-mock,
+ python3-pytest

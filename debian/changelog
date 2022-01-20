@@ -1,0 +1,23 @@
+python-installer (0.4.0+dfsg1-2~bpo11+1) bullseye-backports; urgency=medium
+
+  * Rebuild for bullseye-backports.
+  * Explicitly Build-Depend on python3-tomli, as flit doesn't Depend on it,
+    yet.
+
+ -- Stefano Rivera <stefanor@debian.org>  Wed, 19 Jan 2022 21:32:36 -0400
+
+python-installer (0.4.0+dfsg1-2) unstable; urgency=medium
+
+  * Team upload.
+  * Source-only upload.
+
+ -- Stefano Rivera <stefanor@debian.org>  Sun, 12 Dec 2021 14:52:45 -0400
+
+python-installer (0.4.0+dfsg1-1) unstable; urgency=medium
+
+  * Initial release.
+    - build only the python3-installer module package at this stage; a
+      separate package for the documentation will be added later when all the
+      required build-dependencies are available in Debian.
+
+ -- Stuart Prescott <stuart@debian.org>  Sat, 13 Nov 2021 17:44:44 +1100

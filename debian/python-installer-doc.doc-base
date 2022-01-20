@@ -1,0 +1,14 @@
+Document: python-installer
+Title: Debian python-installer Manual
+Author: 
+Abstract: This is the manual for python-installer.
+ python-installer will install a Python Wheel (distributable module) on the
+ local system following a PEP517 build.
+Section: Programming/Python
+
+Format: HTML
+Index: /usr/share/doc/python-installer-doc/html/index.html
+Files:
+ /usr/share/doc/python-installer-doc/html/*.html
+ /usr/share/doc/python-installer-doc/html/_sources/*
+ /usr/share/doc/python-installer-doc/html/_static/*
