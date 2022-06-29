@@ -1,8 +1,9 @@
 Source: python-installer
 Section: python
 Priority: optional
-Maintainer: Debian Python Team <team+python@tracker.debian.org>
-Uploaders:
+Maintainer: Pexip AS <packaging@pexip.com>
+XSBC-Pexip-Original-Maintainer: Debian Python Team <team+python@tracker.debian.org>
+XSBC-Pexip-Original-Uploaders:
  Stuart Prescott <stuart@debian.org>,
  Stefano Rivera <stefanor@debian.org>,
 Homepage: https://github.com/pradyunsg/installer/
@@ -23,6 +24,7 @@ Build-Depends:
 # python3-sphinx <!nodoc>,
 Standards-Version: 4.6.0
 Rules-Requires-Root: no
+XS-Pexip-Upstream: http://ftp.debian.org/debian/ bullseye
 
 Package: python3-installer
 Architecture: all
