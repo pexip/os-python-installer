@@ -1,4 +1,4 @@
-python-installer (0.4.0+dfsg1-2~bpo11+1pexip1) pexip; urgency=medium
+python-installer (0.4.0+dfsg1-2~bpo11+1pexip1) pexip-bullseye; urgency=medium
 
   * Prepare Pexip packaging
 
