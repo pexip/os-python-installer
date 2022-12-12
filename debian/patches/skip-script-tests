@@ -11,7 +11,7 @@ Forwarded: not-needed
  1 file changed, 4 insertions(+)
 
 diff --git a/tests/test_scripts.py b/tests/test_scripts.py
-index 3a0615c..f2a4742 100644
+index 2da6577..6442e19 100644
 --- a/tests/test_scripts.py
 +++ b/tests/test_scripts.py
 @@ -40,6 +40,8 @@ def _read_launcher_data(section, kind):

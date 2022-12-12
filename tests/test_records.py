@@ -136,10 +136,26 @@ class TestRecordEntry:
     def test_string_representation(self, scheme, elements, data, passes_validation):
         record = RecordEntry.from_elements(*elements)
 
-        expected_string_value = ",".join(
+        expected_row = tuple(
             [(str(elem) if elem is not None else "") for elem in elements]
         )
-        assert str(record) == expected_string_value
+        assert record.to_row() == expected_row
+
+    @pytest.mark.parametrize(
+        ("scheme", "elements", "data", "passes_validation"), SAMPLE_RECORDS
+    )
+    def test_string_representation_with_prefix(
+        self, scheme, elements, data, passes_validation
+    ):
+        record = RecordEntry.from_elements(*elements)
+
+        expected_row = tuple(
+            [
+                (str(elem) if elem is not None else "")
+                for elem in ("prefix/" + elements[0], elements[1], elements[2])
+            ]
+        )
+        assert record.to_row("prefix/") == expected_row
 
     def test_equality(self):
         record = RecordEntry.from_elements(
@@ -212,15 +228,23 @@ class TestParseRecordFile:
     @pytest.mark.parametrize(
         "line, element_count",
         [
-            ("file.py,sha256=AVTFPZpEKzuHr7OvQZmhaU3LvwKz06AJw8mT\\_pNh2yI,3144,", 4),
-            ("distribution-1.0.dist-info/RECORD,,,,", 5),
+            pytest.param(
+                "file.py,sha256=AVTFPZpEKzuHr7OvQZmhaU3LvwKz06AJw8mT\\_pNh2yI,3144,",
+                4,
+                id="four",
+            ),
+            pytest.param(
+                "distribution-1.0.dist-info/RECORD,,,,",
+                5,
+                id="five",
+            ),
         ],
     )
     def test_rejects_wrong_element_count(self, line, element_count):
         with pytest.raises(InvalidRecordEntry) as exc_info:
             list(parse_record_file([line]))
 
-        message = "expected 3 elements, got {}".format(element_count)
+        message = f"expected 3 elements, got {element_count}"
         assert message in str(exc_info.value)
 
     def test_shows_correct_row_number(self):
@@ -234,3 +258,18 @@ class TestParseRecordFile:
             list(parse_record_file(record_lines))
 
         assert "Row Index 3" in str(exc_info.value)
+
+    def test_parse_record_entry_with_comma(self):
+        record_lines = [
+            '"file1,file2.txt",sha256=AVTFPZpEKzuHr7OvQZmhaU3LvwKz06AJw8mT\\_pNh2yI,3144',
+            "distribution-1.0.dist-info/RECORD,,",
+        ]
+        records = list(parse_record_file(record_lines))
+        assert records == [
+            (
+                "file1,file2.txt",
+                "sha256=AVTFPZpEKzuHr7OvQZmhaU3LvwKz06AJw8mT\\_pNh2yI",
+                "3144",
+            ),
+            ("distribution-1.0.dist-info/RECORD", "", ""),
+        ]

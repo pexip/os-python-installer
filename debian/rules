@@ -9,9 +9,10 @@ export PYBUILD_TEST_ARGS = -rsx -v
 %:
 	dh $@ --buildsystem pybuild
 
-# once myst-parser is in Debian, this builds the docs
-# execute_after_dh_auto_build:
-# 	PYTHONPATH=$(CURDIR)/src/ \
-# 	  http_proxy=http://127.0.0.1:9 \
-# 	  https_proxy=https://127.0.0.1:9 \
-# 	  python3 -m sphinx -N -bhtml docs/ build/html
+execute_after_dh_auto_build:
+ifeq (,$(filter nodoc,$(DEB_BUILD_OPTIONS)))
+	PYTHONPATH=$(CURDIR)/src/ \
+	  http_proxy=http://127.0.0.1:9 \
+	  https_proxy=https://127.0.0.1:9 \
+	  python3 -m sphinx -N -bhtml docs/ build/html
+endif

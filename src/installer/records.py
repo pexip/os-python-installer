@@ -3,14 +3,8 @@
 import base64
 import csv
 import hashlib
-
-from installer._compat.typing import TYPE_CHECKING, cast
-
-if TYPE_CHECKING:
-    from typing import Iterable, Iterator, Optional, Tuple
-
-    from installer._compat.typing import FSPath, Text
-
+import os
+from typing import Iterable, Iterator, Optional, Tuple, cast
 
 __all__ = [
     "Hash",
@@ -24,7 +18,7 @@ class InvalidRecordEntry(Exception):
     """Raised when a RecordEntry is not valid, due to improper element values or count."""
 
     def __init__(self, elements, issues):  # noqa: D107
-        super(InvalidRecordEntry, self).__init__(", ".join(issues))
+        super().__init__(", ".join(issues))
         self.issues = issues
         self.elements = elements
 
@@ -34,11 +28,10 @@ class InvalidRecordEntry(Exception):
         )
 
 
-class Hash(object):
+class Hash:
     """Represents the "hash" element of a RecordEntry."""
 
-    def __init__(self, name, value):
-        # type: (str, str) -> None
+    def __init__(self, name: str, value: str) -> None:
         """Construct a ``Hash`` object.
 
         Most consumers should use :py:meth:`Hash.parse` instead, since no
@@ -50,21 +43,18 @@ class Hash(object):
         self.name = name
         self.value = value
 
-    def __str__(self):
-        # type: () -> str
-        return "{}={}".format(self.name, self.value)
+    def __str__(self) -> str:
+        return f"{self.name}={self.value}"
 
-    def __repr__(self):
-        # type: () -> str
-        return "Hash(name={!r}, value={!r})".format(self.name, self.value)
+    def __repr__(self) -> str:
+        return f"Hash(name={self.name!r}, value={self.value!r})"
 
     def __eq__(self, other):
         if not isinstance(other, Hash):
-            return NotImplemented  # no-cover: python2
+            return NotImplemented
         return self.value == other.value and self.name == other.name
 
-    def validate(self, data):
-        # type: (bytes) -> bool
+    def validate(self, data: bytes) -> bool:
         """Validate that ``data`` matches this instance.
 
         :param data: Contents of the file.
@@ -75,8 +65,7 @@ class Hash(object):
         return self.value == value
 
     @classmethod
-    def parse(cls, h):
-        # type: (str) -> Hash
+    def parse(cls, h: str) -> "Hash":
         """Build a Hash object, from a "name=value" string.
 
         This accepts a string of the format for the second element in a record,
@@ -92,14 +81,13 @@ class Hash(object):
         return cls(name, value)
 
 
-class RecordEntry(object):
+class RecordEntry:
     """Represents a single record in a RECORD file.
 
     A list of :py:class:`RecordEntry` objects fully represents a RECORD file.
     """
 
-    def __init__(self, path, hash_, size):
-        # type: (FSPath, Optional[Hash], Optional[int]) -> None
+    def __init__(self, path: str, hash_: Optional[Hash], size: Optional[int]) -> None:
         r"""Construct a ``RecordEntry`` object.
 
         Most consumers should use :py:meth:`RecordEntry.from_elements`, since no
@@ -109,38 +97,49 @@ class RecordEntry(object):
         :param hash\_: hash of the file's contents
         :param size: file's size in bytes
         """
-        super(RecordEntry, self).__init__()
+        super().__init__()
 
         self.path = path
         self.hash_ = hash_
         self.size = size
 
-    def __str__(self):
-        # type: () -> str
-        return ",".join(
-            [
-                (str(elem) if elem is not None else "")
-                for elem in [self.path, self.hash_, self.size]
-            ]
+    def to_row(self, path_prefix: Optional[str] = None) -> Tuple[str, str, str]:
+        """Convert this into a 3-element tuple that can be written in a RECORD file.
+
+        :param path_prefix: A prefix to attach to the path -- must end in `/`
+        :return: a (path, hash, size) row
+        """
+        if path_prefix is not None:
+            assert path_prefix.endswith("/")
+            path = path_prefix + self.path
+        else:
+            path = self.path
+
+        # Convert Windows paths to use / for consistency
+        if os.sep == "\\":
+            path = path.replace("\\", "/")  # pragma: no cover
+
+        return (
+            path,
+            str(self.hash_ or ""),
+            str(self.size) if self.size is not None else "",
         )
 
-    def __repr__(self):
-        # type: () -> str
+    def __repr__(self) -> str:
         return "RecordEntry(path={!r}, hash_={!r}, size={!r})".format(
             self.path, self.hash_, self.size
         )
 
     def __eq__(self, other):
         if not isinstance(other, RecordEntry):
-            return NotImplemented  # no-cover: python2
+            return NotImplemented
         return (
             self.path == other.path
             and self.hash_ == other.hash_
             and self.size == other.size
         )
 
-    def validate(self, data):
-        # type: (bytes) -> bool
+    def validate(self, data: bytes) -> bool:
         """Validate that ``data`` matches this instance.
 
         :param data: Contents of the file corresponding to this instance.
@@ -155,14 +154,12 @@ class RecordEntry(object):
         return True
 
     @classmethod
-    def from_elements(cls, path, hash_, size):
-        # type: (FSPath, str, str) -> RecordEntry
+    def from_elements(cls, path: str, hash_: str, size: str) -> "RecordEntry":
         r"""Build a RecordEntry object, from values of the elements.
 
         Typical usage::
 
-            reader = csv.reader(f)
-            for row in reader:
+            for row in parse_record_file(f):
                 record = RecordEntry.from_elements(row[0], row[1], row[2])
 
         Meaning of each element is specified in :pep:`376`.
@@ -180,7 +177,7 @@ class RecordEntry(object):
 
         if hash_:
             try:
-                hash_value = Hash.parse(hash_)  # type: Optional[Hash]
+                hash_value: Optional[Hash] = Hash.parse(hash_)
             except ValueError:
                 issues.append("`hash` does not follow the required format")
         else:
@@ -188,7 +185,7 @@ class RecordEntry(object):
 
         if size:
             try:
-                size_value = int(size)  # type: Optional[int]
+                size_value: Optional[int] = int(size)
             except ValueError:
                 issues.append("`size` cannot be non-integer")
         else:
@@ -200,8 +197,7 @@ class RecordEntry(object):
         return cls(path=path, hash_=hash_value, size=size_value)
 
 
-def parse_record_file(rows):
-    # type: (Iterable[Text]) -> Iterator[Tuple[FSPath, str, str]]
+def parse_record_file(rows: Iterable[str]) -> Iterator[Tuple[str, str, str]]:
     """Parse a :pep:`376` RECORD.
 
     Returns an iterable of 3-value tuples, that can be passed to
@@ -217,5 +213,5 @@ def parse_record_file(rows):
             )
             raise InvalidRecordEntry(elements=elements, issues=[message])
 
-        value = cast("Tuple[FSPath, str, str]", tuple(elements))
+        value = cast(Tuple[str, str, str], tuple(elements))
         yield value
