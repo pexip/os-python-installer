@@ -1,0 +1,149 @@
+From: Stefano Rivera <stefanor@debian.org>
+Date: Sun, 16 Oct 2022 13:01:21 +0200
+Subject: Search wheels for .dist-info directories
+
+Some wheels don't use normalized names for their .dist-info directories,
+so search the wheel for them.
+
+Fixes: #134
+Bug-Upstream: https://github.com/pypa/installer/issues/134
+Bug-Debian: https://bugs.debian.org/1008606
+Forwarded: https://github.com/pypa/installer/pull/137
+---
+ src/installer/sources.py | 29 ++++++++++++++++++++++++++++-
+ src/installer/utils.py   |  8 ++++++++
+ tests/test_sources.py    | 17 +++++++++++++++++
+ tests/test_utils.py      | 22 ++++++++++++++++++++++
+ 4 files changed, 75 insertions(+), 1 deletion(-)
+
+diff --git a/src/installer/sources.py b/src/installer/sources.py
+index fa0bc34..e3a7c45 100644
+--- a/src/installer/sources.py
++++ b/src/installer/sources.py
+@@ -8,7 +8,7 @@ from contextlib import contextmanager
+ from typing import BinaryIO, Iterator, List, Tuple, cast
+ 
+ from installer.records import parse_record_file
+-from installer.utils import parse_wheel_filename
++from installer.utils import canonicalize_name, parse_wheel_filename
+ 
+ WheelContentElement = Tuple[Tuple[str, str, str], BinaryIO, bool]
+ 
+@@ -122,6 +122,33 @@ class WheelFile(WheelSource):
+         with zipfile.ZipFile(path) as f:
+             yield cls(f)
+ 
++    @property
++    def dist_info_dir(self) -> str:
++        """Name of the dist-info directory."""
++        if not hasattr(self, "_dist_info_dir"):
++            top_level_directories = {
++                path.split("/", 1)[0] for path in self._zipfile.namelist()
++            }
++            dist_infos = [
++                name for name in top_level_directories if name.endswith(".dist-info")
++            ]
++
++            assert (
++                len(dist_infos) == 1
++            ), "Wheel doesn't contain exactly one .dist-info directory"
++            dist_info_dir = dist_infos[0]
++
++            # NAME-VER.dist-info
++            di_dname = dist_info_dir.rsplit("-", 2)[0]
++            norm_di_dname = canonicalize_name(di_dname)
++            norm_file_dname = canonicalize_name(self.distribution)
++            assert (
++                norm_di_dname == norm_file_dname
++            ), "Wheel .dist-info directory doesn't match wheel filename"
++
++            self._dist_info_dir = dist_info_dir
++        return self._dist_info_dir
++
+     @property
+     def dist_info_filenames(self) -> List[str]:
+         """Get names of all files in the dist-info directory."""
+diff --git a/src/installer/utils.py b/src/installer/utils.py
+index 7b1404d..cef2bd8 100644
+--- a/src/installer/utils.py
++++ b/src/installer/utils.py
+@@ -94,6 +94,14 @@ def parse_metadata_file(contents: str) -> Message:
+     return feed_parser.close()
+ 
+ 
++def canonicalize_name(name: str) -> str:
++    """Canonicalize a project name according to PEP-503.
++
++    :param name: The project name to canonicalize
++    """
++    return re.sub(r"[-_.]+", "-", name).lower()
++
++
+ def parse_wheel_filename(filename: str) -> WheelFilename:
+     """Parse a wheel filename, into it's various components.
+ 
+diff --git a/tests/test_sources.py b/tests/test_sources.py
+index a79cc24..8d71496 100644
+--- a/tests/test_sources.py
++++ b/tests/test_sources.py
+@@ -92,3 +92,20 @@ class TestWheelFile:
+ 
+         assert sorted(got_records) == sorted(expected_records)
+         assert got_files == files
++
++    def test_finds_dist_info(self, fancy_wheel):
++        denorm = fancy_wheel.rename(fancy_wheel.parent / "Fancy-1.0.0-py3-none-any.whl")
++        # Python 3.7: rename doesn't return the new name:
++        denorm = fancy_wheel.parent / "Fancy-1.0.0-py3-none-any.whl"
++        with WheelFile.open(denorm) as source:
++            assert source.dist_info_filenames
++
++    def test_requires_dist_info_name_match(self, fancy_wheel):
++        misnamed = fancy_wheel.rename(
++            fancy_wheel.parent / "misnamed-1.0.0-py3-none-any.whl"
++        )
++        # Python 3.7: rename doesn't return the new name:
++        misnamed = fancy_wheel.parent / "misnamed-1.0.0-py3-none-any.whl"
++        with pytest.raises(AssertionError):
++            with WheelFile.open(misnamed) as source:
++                source.dist_info_filenames
+diff --git a/tests/test_utils.py b/tests/test_utils.py
+index bfcc089..e4bfb6a 100644
+--- a/tests/test_utils.py
++++ b/tests/test_utils.py
+@@ -16,6 +16,7 @@ from installer.utils import (
+     construct_record_file,
+     copyfileobj_with_hashing,
+     fix_shebang,
++    canonicalize_name,
+     parse_entrypoints,
+     parse_metadata_file,
+     parse_wheel_filename,
+@@ -41,6 +42,27 @@ class TestParseMetadata:
+         assert result.get_all("MULTI-USE-FIELD") == ["1", "2", "3"]
+ 
+ 
++class TestCanonicalizeDistributionName:
++    @pytest.mark.parametrize(
++        "string, expected",
++        [
++            # Noop
++            (
++                "package-1",
++                "package-1",
++            ),
++            # PEP 508 canonicalization
++            (
++                "ABC..12",
++                "abc-12",
++            ),
++        ],
++    )
++    def test_valid_cases(self, string, expected):
++        got = canonicalize_name(string)
++        assert expected == got, (expected, got)
++
++
+ class TestParseWheelFilename:
+     @pytest.mark.parametrize(
+         "string, expected",

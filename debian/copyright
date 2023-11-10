@@ -2,11 +2,12 @@ Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Files-Excluded: src/installer/_scripts/*.exe
 
 Files: *
-Copyright: 2020, Pradyun Gedam
+Copyright: 2020-2022, Pradyun Gedam
 License: Expat
 
 Files: debian/*
 Copyright: 2021, Stuart Prescott <stuart@debian.org>
+           2021-2022, Stefan Rivera <stefanor@debian.org>
 License: Expat
 
 License: Expat

@@ -1,10 +1,8 @@
-from __future__ import unicode_literals
-
 import hashlib
 import textwrap
 from io import BytesIO
+from unittest import mock
 
-import mock
 import pytest
 
 from installer import install
@@ -25,7 +23,7 @@ def mock_destination():
     retval = mock.Mock()
 
     # A hacky approach to making sure we got the right objects going in.
-    def custom_write_file(scheme, path, stream):
+    def custom_write_file(scheme, path, stream, is_executable):
         assert isinstance(stream, BytesIO)
         return (path, scheme, 0)
 
@@ -39,10 +37,8 @@ def mock_destination():
 
 
 class FakeWheelSource(WheelSource):
-    # NOTE: For Python 2 compatibility, this doesn't use keyword only arguments.
-    #       Change that once the support is dropped.
-    def __init__(self, distribution, version, regular_files, dist_info_files):
-        super(FakeWheelSource, self).__init__(distribution, version)
+    def __init__(self, *, distribution, version, regular_files, dist_info_files):
+        super().__init__(distribution, version)
 
         self.dist_info_files = {
             file: textwrap.dedent(content.decode("utf-8"))
@@ -54,7 +50,7 @@ class FakeWheelSource(WheelSource):
         }
 
         # Compute RECORD file.
-        _records = [record for record, _ in self.get_contents()]
+        _records = [record for record, _, _ in self.get_contents()]
         self.dist_info_files["RECORD"] = "\n".join(
             sorted(
                 ",".join([file, "sha256=" + hash_, str(size)])
@@ -74,9 +70,9 @@ class FakeWheelSource(WheelSource):
         # insertion order for dictionaries.
         for file, content in sorted(self.regular_files.items()):
             hashed, size = hash_and_size(content)
-            record = (file, "sha256={}".format(hashed), str(size))
+            record = (file, f"sha256={hashed}", str(size))
             with BytesIO(content) as stream:
-                yield record, stream
+                yield record, stream, False
 
         # Sort for deterministic behaviour for Python versions that do not preserve
         # insertion order for dictionaries.
@@ -85,11 +81,11 @@ class FakeWheelSource(WheelSource):
             hashed, size = hash_and_size(content)
             record = (
                 self.dist_info_dir + "/" + file,
-                "sha256={}".format(hashed),
+                f"sha256={hashed}",
                 str(size),
             )
             with BytesIO(content) as stream:
-                yield record, stream
+                yield record, stream, False
 
 
 # --------------------------------------------------------------------------------------
@@ -170,36 +166,43 @@ class TestInstall:
                     scheme="purelib",
                     path="fancy/__init__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy/__main__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/METADATA",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/WHEEL",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/entry_points.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/top_level.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/fun_file.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.finalize_installation(
                     scheme="purelib",
@@ -287,31 +290,37 @@ class TestInstall:
                     scheme="purelib",
                     path="fancy/__init__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy/__main__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/METADATA",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/WHEEL",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/top_level.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/fun_file.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.finalize_installation(
                     scheme="purelib",
@@ -412,36 +421,43 @@ class TestInstall:
                     scheme="platlib",
                     path="fancy/__init__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy/__main__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy-1.0.0.dist-info/METADATA",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy-1.0.0.dist-info/WHEEL",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy-1.0.0.dist-info/entry_points.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy-1.0.0.dist-info/top_level.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy-1.0.0.dist-info/fun_file.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.finalize_installation(
                     scheme="platlib",
@@ -674,51 +690,61 @@ class TestInstall:
                     scheme="data",
                     path="fancy/data.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="headers",
                     path="fancy/headers.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="platlib",
                     path="fancy/platlib.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy/purelib.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="scripts",
                     path="fancy/scripts.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy/__init__.py",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/METADATA",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/WHEEL",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/entry_points.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.write_file(
                     scheme="purelib",
                     path="fancy-1.0.0.dist-info/top_level.txt",
                     stream=mock.ANY,
+                    is_executable=False,
                 ),
                 mock.call.finalize_installation(
                     scheme="purelib",
@@ -807,3 +833,73 @@ class TestInstall:
             )
 
         assert "fancy-1.0.0.data/invalid/fancy/invalid.py" in str(ctx.value)
+
+    def test_ensure_non_executable_for_additional_metadata(self, mock_destination):
+        # Create a fake wheel
+        source = FakeWheelSource(
+            distribution="fancy",
+            version="1.0.0",
+            regular_files={
+                "fancy/__init__.py": b"""\
+                    # put me in purelib
+                """,
+            },
+            dist_info_files={
+                "top_level.txt": b"""\
+                    fancy
+                """,
+                "WHEEL": b"""\
+                    Wheel-Version: 1.0
+                    Generator: magic (1.0.0)
+                    Root-Is-Purelib: true
+                    Tag: py3-none-any
+                """,
+                "METADATA": b"""\
+                    Metadata-Version: 2.1
+                    Name: fancy
+                    Version: 1.0.0
+                    Summary: A fancy package
+                    Author: Agendaless Consulting
+                    Author-email: nobody@example.com
+                    License: MIT
+                    Keywords: fancy amazing
+                    Platform: UNKNOWN
+                    Classifier: Intended Audience :: Developers
+                """,
+            },
+        )
+        all_contents = list(source.get_contents())
+        source.get_contents = lambda: (
+            (*contents, True) for (*contents, _) in all_contents
+        )
+        install(
+            source=source,
+            destination=mock_destination,
+            additional_metadata={
+                "fun_file.txt": b"this should be in dist-info!",
+            },
+        )
+
+        mock_destination.assert_has_calls(
+            [
+                mock.call.write_file(
+                    scheme="purelib",
+                    path="fancy/__init__.py",
+                    stream=mock.ANY,
+                    is_executable=True,
+                ),
+                mock.call.write_file(
+                    scheme="purelib",
+                    path="fancy-1.0.0.dist-info/METADATA",
+                    stream=mock.ANY,
+                    is_executable=True,
+                ),
+                mock.call.write_file(
+                    scheme="purelib",
+                    path="fancy-1.0.0.dist-info/fun_file.txt",
+                    stream=mock.ANY,
+                    is_executable=False,
+                ),
+            ],
+            any_order=True,
+        )

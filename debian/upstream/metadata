@@ -1,10 +1,10 @@
 ---
 Changelog: https://installer.readthedocs.io/en/latest/changelog/
 Documentation: https://installer.readthedocs.io/en/latest/
-Bug-Database: https://github.com/pradyunsg/installer/issues
-Bug-Submit: https://github.com/pradyunsg/installer/issues/new
+Bug-Database: https://github.com/pypa/installer/issues
+Bug-Submit: https://github.com/pypa/installer/issues/new
 Registry:
   - Name: PyPI
     Entry: installer
-Repository: https://github.com/pradyunsg/installer.git
-Repository-Browse: https://github.com/pradyunsg/installer
+Repository: https://github.com/pypa/installer.git
+Repository-Browse: https://github.com/pypa/installer
