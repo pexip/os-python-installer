@@ -1,3 +1,9 @@
+python-installer (0.6.0+dfsg1-1+pexip24u3) pexip-bookworm; urgency=medium
+
+  * New versioning scheme
+
+ -- Mark Hymers <mark.hymers@pexip.com>  Thu, 01 Feb 2024 16:22:52 +0000
+
 python-installer (0.6.0+dfsg1-1pexip2) pexip-bookworm; urgency=medium
 
   * Bookworm build for product distribution
